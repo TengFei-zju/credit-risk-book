@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name            = "creditrisk"
+version         = "0.1.0"
+description     = "信贷风控建模小绿书 — 配套代码库"
+requires-python = ">=3.9"
+
+dependencies = [
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "scikit-learn>=1.3",
+    "lightgbm>=4.0",
+    "matplotlib>=3.7",
+    "pyarrow>=14.0",     # parquet 支持
+    "optbinning>=0.19",  # WOE 最优分箱
+    "optuna>=3.4",       # 超参数搜索
+    "shap>=0.44",        # 模型解释
+]
+
+[project.optional-dependencies]
+dev = [
+    "jupyter",
+    "ipywidgets",
+    "seaborn",
+    "torch-geometric",   # GNN（第11章反欺诈）
+]

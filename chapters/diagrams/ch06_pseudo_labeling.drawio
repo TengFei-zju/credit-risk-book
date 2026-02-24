@@ -1,0 +1,48 @@
+<mxfile host="app.diagrams.net" modified="2026-02-24T00:00:00.000Z" agent="Claude Code" version="21.0.0" etag="pseudo-labeling" type="device" scale="1" border="20">
+  <diagram id="pseudo" name="Pseudo-Labeling">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="900" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="伪标签迭代流程 (Pseudo-Labeling Iteration)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="30" width="400" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="step1" value="1. 训练模型&#10;Train Model&#10;(有标签数据)" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#ff6b6b;fillColor=#ffe3e3;fontSize=14;align=center;" vertex="1" parent="1">
+          <mxGeometry x="375" y="100" width="150" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="step2" value="2. 预测无标签数据&#10;Predict Unlabeled&#10;(生成伪标签)" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#74c0fc;fillColor=#e7f5ff;fontSize=14;align=center;" vertex="1" parent="1">
+          <mxGeometry x="600" y="250" width="150" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="step3" value="3. 选择高置信度样本&#10;Select Confident&#10;(probability &gt; threshold)" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#fcc419;fillColor=#fff9db;fontSize=14;align=center;" vertex="1" parent="1">
+          <mxGeometry x="375" y="400" width="150" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="step4" value="4. 加入训练集&#10;Add to Training&#10;(扩展训练数据)" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#51cf66;fillColor=#d3f9d8;fontSize=14;align=center;" vertex="1" parent="1">
+          <mxGeometry x="150" y="250" width="150" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrow1" value="" style="endArrow=classic;html=1;strokeWidth=3;strokeColor=#ff6b6b;" edge="1" parent="1" source="step1" target="step2"/>
+        <mxCell id="arrow2" value="" style="endArrow=classic;html=1;strokeWidth=3;strokeColor=#74c0fc;" edge="1" parent="1" source="step2" target="step3"/>
+        <mxCell id="arrow3" value="" style="endArrow=classic;html=1;strokeWidth=3;strokeColor=#fcc419;" edge="1" parent="1" source="step3" target="step4"/>
+        <mxCell id="arrow4" value="" style="endArrow=classic;html=1;strokeWidth=3;strokeColor=#51cf66;curved=1;" edge="1" parent="1" source="step4" target="step1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="200" y="200" as="sourcePoint"/>
+            <mxPoint x="350" y="150" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="iterationLabel" value="迭代&#10;Repeat" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=14;fontStyle=1;fontColor=#ff6b6b;" vertex="1" parent="1">
+          <mxGeometry x="280" y="150" width="60" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="dataLabel1" value="有标签数据&#10;Labeled Data" style="shape=note;whiteSpace=wrap;html=1;strokeColor=#333333;fillColor=#fff2cc;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="50" y="250" width="80" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="dataLabel2" value="无标签数据&#10;Unlabeled Data" style="shape=note;whiteSpace=wrap;html=1;strokeColor=#333333;fillColor=#e7f5ff;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="770" y="250" width="80" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrowToStep1" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;dashed=1;" edge="1" parent="1" source="dataLabel1" target="step4"/>
+        <mxCell id="arrowToStep2" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;dashed=1;" edge="1" parent="1" source="dataLabel2" target="step2"/>
+        <mxCell id="confidenceBox" value="置信度阈值&#10;threshold=0.9" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#fcc419;fillColor=#fff9db;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="570" y="380" width="100" height="50" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

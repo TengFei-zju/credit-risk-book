@@ -1,6 +1,6 @@
-# 第十三章 风控中的大模型应用
+# 第十六章 风控中的大模型应用
 
-## 13.1 LLM在风控场景的定位
+## 16.1 LLM在风控场景的定位
 
 大语言模型（LLM）在信贷风控中**不是替代传统风控模型**，而是在特定场景发挥独特价值：
 
@@ -20,9 +20,9 @@ LLM不适合的场景（需要精确数值推理）：
 
 ---
 
-## 13.2 LLM用于非结构化数据分析
+## 16.2 LLM用于非结构化数据分析
 
-### 13.2.1 企业财务报告风险解读
+### 16.2.1 企业财务报告风险解读
 
 ```python
 from anthropic import Anthropic
@@ -70,7 +70,7 @@ def analyze_financial_report(report_text: str, company_name: str) -> dict:
     return result
 ```
 
-### 13.2.2 舆情风险监控
+### 16.2.2 舆情风险监控
 
 ```python
 def analyze_news_risk(news_articles: list, entity_name: str) -> dict:
@@ -104,9 +104,9 @@ def analyze_news_risk(news_articles: list, entity_name: str) -> dict:
 
 ---
 
-## 13.3 LLM辅助催收
+## 16.3 LLM辅助催收
 
-### 13.3.1 个性化催收话术生成
+### 16.3.1 个性化催收话术生成
 
 ```python
 def generate_collection_script(customer_profile: dict, overdue_info: dict,
@@ -154,9 +154,9 @@ def generate_collection_script(customer_profile: dict, overdue_info: dict,
 
 ---
 
-## 13.4 LLM用于风控知识问答
+## 16.4 LLM用于风控知识问答
 
-### 13.4.1 RAG（检索增强生成）风控知识库
+### 16.4.1 RAG（检索增强生成）风控知识库
 
 ```python
 # 构建风控内部知识问答系统
@@ -216,9 +216,9 @@ def build_risk_qa_system(knowledge_docs: list):
 
 ---
 
-## 13.5 LLM辅助风控模型开发
+## 16.5 LLM辅助风控模型开发
 
-### 13.5.1 自动化EDA报告
+### 16.5.1 自动化EDA报告
 
 ```python
 def generate_eda_narrative(eda_stats: dict, target_bad_rate: float) -> str:
@@ -249,7 +249,7 @@ EDA统计：
     return message.content[0].text
 ```
 
-### 13.5.2 模型监控异常解读
+### 16.5.2 模型监控异常解读
 
 ```python
 def explain_monitoring_alert(alert_data: dict) -> str:
@@ -278,9 +278,9 @@ def explain_monitoring_alert(alert_data: dict) -> str:
 
 ---
 
-## 13.6 LLM应用的风险与合规
+## 16.6 LLM应用的风险与合规
 
-### 13.6.1 在风控场景使用LLM的注意事项
+### 16.6.1 在风控场景使用LLM的注意事项
 
 ```markdown
 ⚠️ 使用LLM的核心风险：
@@ -303,7 +303,7 @@ def explain_monitoring_alert(alert_data: dict) -> str:
    - 需要固定system prompt，并记录每次输出
 ```
 
-### 13.6.2 本地模型部署（数据安全场景）
+### 16.6.2 本地模型部署（数据安全场景）
 
 ```python
 # 使用本地模型（以Ollama为例）处理敏感数据
@@ -326,7 +326,7 @@ def local_llm_analyze(text: str, model: str = "qwen2.5:7b") -> str:
 
 ---
 
-## 13.7 未来展望
+## 16.7 未来展望
 
 ```
 LLM × 风控的演进方向：

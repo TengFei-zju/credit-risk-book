@@ -5,7 +5,7 @@ build-backend = "setuptools.backends.legacy:build"
 [project]
 name            = "creditrisk"
 version         = "0.1.0"
-description     = "信贷风控建模小绿书 — 配套代码库"
+description     = "信贷风控建模：打工人手册 — 配套代码库"
 requires-python = ">=3.9"
 
 dependencies = [

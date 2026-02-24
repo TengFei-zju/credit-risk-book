@@ -1,0 +1,65 @@
+<mxfile host="app.diagrams.net" modified="2026-02-24T00:00:00.000Z" agent="Claude Code" version="21.0.0" etag="feature-selection-pipeline" type="device" scale="1" border="20">
+  <diagram id="feature-selection" name="Feature Selection Pipeline">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="600" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="特征选择流程 (Feature Selection Pipeline)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="500" y="30" width="400" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="step1" value="IV 过滤&#10;Information Value" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#333333;fillColor=#ffffff;fontSize=14;align=center;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="150" width="140" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="step2" value="相关性过滤&#10;Correlation Matrix" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#333333;fillColor=#ffffff;fontSize=14;align=center;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="280" y="150" width="140" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="step3" value="空重要性&#10;Null Importance" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#333333;fillColor=#ffffff;fontSize=14;align=center;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="480" y="150" width="140" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="step4" value="对抗验证&#10;Adversarial Validation" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#333333;fillColor=#ffffff;fontSize=14;align=center;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="680" y="150" width="140" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="step5" value="模型重要性&#10;Model Importance" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#333333;fillColor=#ffffff;fontSize=14;align=center;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="880" y="150" width="140" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrow1" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1" source="step1" target="step2"/>
+        <mxCell id="arrow2" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1" source="step2" target="step3"/>
+        <mxCell id="arrow3" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1" source="step3" target="step4"/>
+        <mxCell id="arrow4" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1" source="step4" target="step5"/>
+        <mxCell id="count1" value="500&#10;初始特征" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontColor=#ff6b6b;" vertex="1" parent="1">
+          <mxGeometry x="80" y="250" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="count2" value="300&#10;-40%" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontColor=#ff6b6b;" vertex="1" parent="1">
+          <mxGeometry x="280" y="250" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="count3" value="150&#10;-50%" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontColor=#ff6b6b;" vertex="1" parent="1">
+          <mxGeometry x="480" y="250" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="count4" value="100&#10;-33%" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontColor=#ff6b6b;" vertex="1" parent="1">
+          <mxGeometry x="680" y="250" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="count5" value="80&#10;最终特征" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontColor=#51cf66;" vertex="1" parent="1">
+          <mxGeometry x="880" y="250" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="inputData" value="原始特征集" style="shape=note;whiteSpace=wrap;html=1;strokeColor=#333333;fillColor=#fff2cc;fontSize=14;align=center;" vertex="1" parent="1">
+          <mxGeometry x="30" y="100" width="80" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="inputArrow" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="110" y="120" as="sourcePoint"/>
+            <mxPoint x="150" y="150" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="outputData" value="最优特征子集" style="shape=note;whiteSpace=wrap;html=1;strokeColor=#333333;fillColor=#d5e8d4;fontSize=14;align=center;" vertex="1" parent="1">
+          <mxGeometry x="990" y="100" width="80" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="outputArrow" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="950" y="120" as="sourcePoint"/>
+            <mxPoint x="990" y="150" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

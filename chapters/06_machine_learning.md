@@ -375,3 +375,182 @@ def time_series_cv(X, y, dates, n_splits=5):
 ---
 
 > **本章小结**：LightGBM是风控ML建模的首选，SHAP提供了向业务解释ML模型的语言，理由码体系使ML模型满足监管要求。神经网络在行为序列建模上有独特价值。时间序列交叉验证是评估风控模型的必要规范。
+
+---
+
+## 6.7 Kaggle 金牌方案核心技巧
+
+### 6.7.1 OOF（Out-of-Fold）预测
+
+![OOF 交叉验证流程图](diagrams/ch06_oof_cross_validation.drawio)
+
+**核心思想**：用交叉验证的 out-of-fold 预测作为训练集的新特征，避免数据泄露。
+
+```python
+from sklearn.model_selection import StratifiedKFold
+import lightgbm as lgb
+
+def get_oof_predictions(X, y, X_test, model_params, n_splits=5, random_state=42):
+    """
+    生成 OOF 预测
+    - oof_train: 训练集每个样本的 out-of-fold 预测
+    - oof_test: 测试集的预测（多折平均）
+    """
+    kf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+
+    oof_train = np.zeros(len(X))
+    oof_test = np.zeros(len(X_test))
+    oof_models = []
+
+    for fold, (train_idx, val_idx) in enumerate(kf.split(X, y)):
+        print(f"Fold {fold + 1}/{n_splits}")
+
+        X_train_fold = X.iloc[train_idx]
+        y_train_fold = y.iloc[train_idx]
+        X_val_fold = X.iloc[val_idx]
+        y_val_fold = y.iloc[val_idx]
+
+        model = lgb.LGBMClassifier(**model_params)
+        model.fit(
+            X_train_fold, y_train_fold,
+            eval_set=[(X_val_fold, y_val_fold)],
+            callbacks=[lgb.early_stopping(50), lgb.log_evaluation(200)]
+        )
+
+        # OOF 预测（验证集）
+        oof_train[val_idx] = model.predict_proba(X_val_fold)[:, 1]
+
+        # 测试集预测（累加后平均）
+        oof_test += model.predict_proba(X_test)[:, 1] / n_splits
+
+        oof_models.append(model)
+
+    return oof_train, oof_test, oof_models
+
+# 使用示例
+params = {
+    'n_estimators': 2000,
+    'learning_rate': 0.05,
+    'num_leaves': 31,
+    'max_depth': 6,
+    'feature_fraction': 0.8,
+    'bagging_fraction': 0.8,
+    'bagging_freq': 5,
+    'scale_pos_weight': 20,
+    'verbose': -1
+}
+
+oof_train, oof_test, models = get_oof_predictions(X_train, y_train, X_test, params)
+print(f"OOF AUC: {roc_auc_score(y_train, oof_train):.4f}")
+```
+
+**为什么有效**：
+- 避免直接使用训练集预测造成的过拟合
+- 每折的模型都不同，集成的多样性更好
+- 是 Stacking 集成的基础
+
+---
+
+### 6.7.2 Stacking 集成学习
+
+![Stacking 集成学习架构图](diagrams/ch06_stacking_ensemble.drawio)
+
+Stacking 是一种多层集成方法：
+- **第一层（基模型）**：LGBM、XGB、CatBoost 等不同模型并行处理输入特征
+- **第二层（元模型）**：逻辑回归将基模型的预测作为输入，输出最终概率
+
+---
+
+### 6.7.3 Pseudo-Labeling（伪标签/拒绝推断）
+
+![伪标签迭代流程图](diagrams/ch06_pseudo_labeling.drawio)
+
+**核心思想**：对无标签数据（如拒绝客户）用模型预测，将高置信度的预测作为伪标签加入训练集。
+
+```python
+def pseudo_labeling(X_train, y_train, X_unlabeled,
+                    model_params, n_iterations=3, threshold=0.1):
+    """伪标签迭代训练"""
+    X_current = X_train.copy()
+    y_current = y_train.copy()
+
+    for iteration in range(n_iterations):
+        print(f"Iteration {iteration + 1}/{n_iterations}")
+        model = lgb.LGBMClassifier(**model_params)
+        model.fit(X_current, y_current)
+
+        probs = model.predict_proba(X_unlabeled)[:, 1]
+        confident_mask = (probs < threshold) | (probs > 1 - threshold)
+        n_selected = confident_mask.sum()
+
+        if n_selected == 0:
+            print("没有高置信度样本，停止迭代")
+            break
+
+        pseudo_labels = (probs > 0.5).astype(int)
+        X_pseudo = X_unlabeled[confident_mask]
+        y_pseudo = pseudo_labels[confident_mask]
+
+        X_current = pd.concat([X_current, X_pseudo], ignore_index=True)
+        y_current = pd.concat([y_current, pd.Series(y_pseudo)], ignore_index=True)
+        print(f"  新增伪标签样本：{n_selected}, 当前训练集大小：{len(X_current)}")
+
+    final_model = lgb.LGBMClassifier(**model_params)
+    final_model.fit(X_current, y_current)
+    return final_model, X_current, y_current
+```
+
+**注意事项**：
+- 阈值要谨慎选择（0.1 表示预测概率<0.1 或>0.9 才接受）
+- 迭代次数不宜过多（2-3 次为宜）
+- 需验证伪标签样本的质量（PSI 检查）
+
+---
+
+### 6.7.3 Rank-based Blending（排序融合）
+
+**核心思想**：不直接融合预测概率，而是融合样本的排序位置，更加稳健。
+
+```python
+def rank_blend(model_probs_list, weights=None):
+    """基于排序的融合方法"""
+    n_models = len(model_probs_list)
+    n_samples = len(model_probs_list[0])
+
+    if weights is None:
+        weights = np.ones(n_models) / n_models
+
+    ranks = np.zeros((n_samples, n_models))
+    for i, probs in enumerate(model_probs_list):
+        ranks[:, i] = pd.Series(probs).rank(method='average').values
+
+    weighted_rank = np.average(ranks, axis=1, weights=weights)
+    final_probs = weighted_rank / n_samples
+    return final_probs
+```
+
+**为什么有效**：
+- 概率校准（不同模型的概率尺度可能不同）
+- 对异常值不敏感
+- 在 Kaggle 竞赛中被广泛使用
+
+---
+
+### 6.7.4 类别不平衡的高级处理
+
+```python
+from imblearn.over_sampling import SMOTE
+from imblearn.under_sampling import TomekLinks
+
+def advanced_imbalance_handling(X_train, y_train, method='smote_tomek'):
+    """高级类别不平衡处理"""
+    if method == 'smote_tomek':
+        smote = SMOTE(k_neighbors=5, random_state=42)
+        tomek = TomekLinks()
+        X_resampled, y_resampled = smote.fit_resample(X_train, y_train)
+        X_cleaned, y_cleaned = tomek.fit_resample(X_resampled, y_resampled)
+        return X_cleaned, y_cleaned
+    return X_train, y_train
+```
+
+---

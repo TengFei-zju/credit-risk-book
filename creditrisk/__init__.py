@@ -1,6 +1,6 @@
 """
 creditrisk: 信贷风控建模工具包
-配套《信贷风控建模小绿书》
+配套《信贷风控建模：打工人手册》
 
 模块结构：
   creditrisk.data        数据加载与预处理
@@ -13,6 +13,6 @@ creditrisk: 信贷风控建模工具包
 """
 
 __version__ = "0.1.0"
-__author__  = "信贷风控建模小绿书"
+__author__  = "信贷风控建模：打工人手册"
 
 from creditrisk import data, features, models, evaluation, ensemble, selection, utils

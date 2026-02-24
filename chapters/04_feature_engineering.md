@@ -340,7 +340,251 @@ def lgbm_feature_importance(X_train, y_train, X_val, y_val):
 
 ---
 
-## 4.8 特征工程最佳实践
+## 4.9 高级特征选择技术（Kaggle 金牌方案）
+
+### 特征选择流程总览
+
+![特征选择流程图](diagrams/ch04_feature_selection_pipeline.drawio)
+
+上图为完整的特征选择流程，包含 5 个步骤：
+1. **IV 过滤**：剔除无预测力的特征（IV < 0.02）
+2. **相关性过滤**：剔除高度相关的冗余特征
+3. **Null Importance**：只保留超越噪声基准的特征
+4. **对抗验证**：剔除导致 train/test 分布差异的特征
+5. **模型重要性**：最终确认特征的重要性
+
+### 4.9.1 Null Importance 特征选择
+
+**核心思想**：如果特征的重要性不比随机噪声高，则该特征无价值。
+
+```python
+import numpy as np
+import pandas as pd
+from lightgbm import LGBMClassifier
+
+class NullImportanceSelector:
+    """
+    Null Importance 特征选择
+    源自 Kaggle 风控竞赛金牌方案
+    """
+    def __init__(self, n_runs=10, threshold=0.5, random_state=42):
+        self.n_runs = n_runs
+        self.threshold = threshold  # 重要性/空重要性中位数阈值
+        self.random_state = random_state
+        self.feature_importance = None
+        self.null_importance = None
+
+    def fit(self, X, y, eval_set=None):
+        """
+        1. 计算真实重要性
+        2. 打乱 y 多次，计算空重要性分布
+        """
+        rng = np.random.RandomState(self.random_state)
+
+        # 真实重要性
+        model = LGBMClassifier(n_estimators=100, random_state=self.random_state)
+        model.fit(X, y, eval_set=eval_set, verbose=-1)
+        self.feature_importance = pd.DataFrame({
+            'feature': X.columns,
+            'importance': model.feature_importances_
+        })
+
+        # 空重要性（打乱 y）
+        null_imp = pd.DataFrame(index=X.columns)
+        for i in range(self.n_runs):
+            y_shuffled = y.sample(frac=1, random_state=rng.randint(0, 10000)).values
+            model.fit(X, y_shuffled, verbose=-1)
+            null_imp[f'run_{i}'] = model.feature_importances_
+
+        self.null_importance = null_imp
+        return self
+
+    def get_selection(self):
+        """
+        选择标准：feature_importance / null_importance_median > threshold
+        """
+        null_median = self.null_importance.median(axis=1)
+        ratio = self.feature_importance['importance'] / (null_median + 1e-6)
+
+        selected = ratio[ratio > self.threshold].index.tolist()
+
+        # 生成报告
+        report = pd.DataFrame({
+            'feature': self.feature_importance['feature'],
+            'importance': self.feature_importance['importance'],
+            'null_median': null_median.values,
+            'ratio': ratio.values,
+            'selected': ratio > self.threshold
+        })
+
+        return selected, report
+
+# 使用示例
+selector = NullImportanceSelector(n_runs=10, threshold=0.5)
+selector.fit(X_train, y_train)
+selected_features, report = selector.get_selection()
+print(f"原始特征：{X_train.shape[1]}, 筛选后：{len(selected_features)}")
+```
+
+**为什么有效**：
+- 传统重要性无法判断"多小才算小"
+- Null Importance 建立了随机噪声的基准线
+- 只有超越噪声的特征才值得保留
+
+---
+
+### 4.9.2 对抗验证（Adversarial Validation）
+
+**核心思想**：检测训练集和测试集（或 OOT 样本）的分布差异，识别并剔除导致分布不一致的特征。
+
+```python
+from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import roc_auc_score
+
+class AdversarialValidator:
+    """
+    对抗验证：检测 train/test 分布差异
+    """
+    def __init__(self, n_splits=5, lgbm_params=None, random_state=42):
+        self.n_splits = n_splits
+        self.lgbm_params = lgbm_params or {
+            'n_estimators': 100,
+            'learning_rate': 0.05,
+            'num_leaves': 31,
+            'verbose': -1
+        }
+        self.random_state = random_state
+        self.feature_importance = None
+        self.auc_ = None
+
+    def fit(self, X_train, X_test):
+        """
+        训练对抗模型：区分 train vs test
+        AUC 接近 0.5 说明分布一致
+        AUC 显著高于 0.5 说明分布有差异
+        """
+        rng = np.random.RandomState(self.random_state)
+        n_train, n_test = len(X_train), len(X_test)
+
+        # 合并数据，构造标签
+        X_combined = pd.concat([X_train, X_test], ignore_index=True)
+        y_combined = np.array([0] * n_train + [1] * n_test)
+
+        # 交叉验证
+        kf = StratifiedKFold(n_splits=self.n_splits, shuffle=True, random_state=rng.randint(0, 10000))
+        oof_pred = np.zeros(n_train + n_test)
+        feature_imp = np.zeros(X_combined.shape[1])
+
+        for train_idx, val_idx in kf.split(X_combined, y_combined):
+            model = LGBMClassifier(**self.lgbm_params)
+            model.fit(
+                X_combined.iloc[train_idx], y_combined[train_idx],
+                eval_set=[(X_combined.iloc[val_idx], y_combined[val_idx])],
+                verbose=-1
+            )
+            oof_pred[val_idx] = model.predict_proba(X_combined.iloc[val_idx])[:, 1]
+            feature_imp += model.feature_importances_ / self.n_splits
+
+        self.auc_ = roc_auc_score(y_combined, oof_pred)
+        self.feature_importance = pd.DataFrame({
+            'feature': X_combined.columns,
+            'importance': feature_imp
+        }).sort_values('importance', ascending=False)
+
+        return self
+
+    def get_drop_features(self, threshold=0.1):
+        """
+        返回导致分布差异的特征（重要性最高的前 N 个）
+        建议剔除这些特征或进行特殊处理
+        """
+        if self.feature_importance is None:
+            return []
+
+        # 相对重要性
+        total_imp = self.feature_importance['importance'].sum()
+        self.feature_importance['pct'] = self.feature_importance['importance'] / total_imp
+        self.feature_importance['cumsum'] = self.feature_importance['pct'].cumsum()
+
+        # 选择累积重要性前 threshold 的特征
+        drop_feats = self.feature_importance[
+            self.feature_importance['cumsum'] <= threshold
+        ]['feature'].tolist()
+
+        return drop_feats
+
+# 使用示例
+validator = AdversarialValidator()
+validator.fit(X_train, X_oot)  # X_oot 是 OOT 验证集
+print(f"对抗验证 AUC: {validator.auc_:.4f}")
+
+if validator.auc_ > 0.55:
+    print("⚠️ Train/Test 分布存在差异！")
+    drop_feats = validator.get_drop_features(threshold=0.1)
+    print(f"建议剔除的特征：{drop_feats}")
+else:
+    print("✓ Train/Test 分布一致，无需特殊处理")
+```
+
+**应用场景**：
+- 拒绝推断（Reject Inference）：判断拒绝客户与通过客户是否同分布
+- OOT 验证：判断时间窗口外样本是否可用
+- 域适应：判断不同渠道/产品线的客户是否可合并建模
+
+---
+
+### 4.9.3 特征选择综合策略
+
+Kaggle 金牌方案的特征选择流程：
+
+```python
+def comprehensive_feature_selection(X, y, X_oot=None):
+    """
+    综合特征选择流程
+    1. IV 过滤（无预测力）
+    2. 相关性过滤（冗余特征）
+    3. Null Importance（超越噪声）
+    4. 对抗验证（分布一致性）
+    5. 模型重要性（最终确认）
+    """
+    print(f"初始特征数：{X.shape[1]}")
+
+    # Step 1: IV 过滤
+    iv_dict = {}
+    for col in X.columns:
+        _, iv = calculate_woe_iv(pd.DataFrame({col: X[col], 'target': y}), col, 'target')
+        iv_dict[col] = iv
+    iv_selected = [f for f, iv in iv_dict.items() if iv > 0.02]
+    print(f"IV 筛选后：{len(iv_selected)}")
+
+    # Step 2: 相关性过滤
+    corr_selected = correlation_filter(X[iv_selected], iv_selected, threshold=0.85)
+    print(f"相关性筛选后：{len(corr_selected)}")
+
+    # Step 3: Null Importance
+    null_selector = NullImportanceSelector(n_runs=10, threshold=0.5)
+    null_selector.fit(X[corr_selected], y)
+    null_selected, _ = null_selector.get_selection()
+    print(f"Null Importance 筛选后：{len(null_selected)}")
+
+    # Step 4: 对抗验证（如果有 OOT）
+    if X_oot is not None:
+        validator = AdversarialValidator()
+        validator.fit(X[null_selected], X_oot[null_selected])
+        if validator.auc_ > 0.55:
+            drop_feats = validator.get_drop_features(threshold=0.1)
+            null_selected = [f for f in null_selected if f not in drop_feats]
+            print(f"对抗验证筛选后：{len(null_selected)}")
+
+    return null_selected
+
+# 使用
+final_features = comprehensive_feature_selection(X_train, y_train, X_oot)
+```
+
+---
+
+## 4.10 特征工程最佳实践
 
 ### 4.8.1 特征文档规范
 

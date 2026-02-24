@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"/c/Users/tengfei/Desktop/credit-risk-book/chapters/06_machine_learning.md\":*)",
+      "Bash(npx @next-ai-drawio/mcp-server@latest --version)",
+      "Bash(\"c:/Users/tengfei/Desktop/credit-risk-book/chapters/diagrams/ch04_feature_selection_pipeline.drawio\":*)",
+      "Bash('c:/Users/tengfei/Desktop/credit-risk-book/chapters/diagrams/ch06_oof_cross_validation.drawio':*)",
+      "Bash(tee 'c:/Users/tengfei/Desktop/credit-risk-book/chapters/diagrams/ch06_oof_cross_validation.drawio':*)"
+    ]
+  }
+}

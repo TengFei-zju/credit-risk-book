@@ -1,0 +1,73 @@
+<mxfile host="app.diagrams.net" modified="2026-02-24T00:00:00.000Z" agent="Claude Code" version="21.0.0" etag="customer-relationship-graph" type="device" scale="1" border="20">
+  <diagram id="customer-graph" name="Customer Relationship Graph">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="700" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="客户关系关系图 (Customer Relationship Graph)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="500" y="20" width="400" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend" value="图例:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="620" width="60" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="legendUserDefault" value="违约用户" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#ff6b6b;fillColor=#ffe3e3;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="120" y="620" width="80" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="legendUserNormal" value="正常用户" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#51cf66;fillColor=#d3f9d8;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="220" y="620" width="80" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="legendDevice" value="设备" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#74c0fc;fillColor=#e7f5ff;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="320" y="620" width="80" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="legendAddress" value="地址" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#ffd43b;fillColor=#fff9db;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="420" y="620" width="80" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="user1" value="用户 A&#10;(违约)" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#ff6b6b;fillColor=#ffe3e3;fontSize=14;align=center;" vertex="1" parent="1">
+          <mxGeometry x="150" y="100" width="90" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="user2" value="用户 B&#10;(正常)" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#51cf66;fillColor=#d3f9d8;fontSize=14;align=center;" vertex="1" parent="1">
+          <mxGeometry x="350" y="100" width="90" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="user3" value="用户 C&#10;(违约)" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#ff6b6b;fillColor=#ffe3e3;fontSize=14;align=center;" vertex="1" parent="1">
+          <mxGeometry x="550" y="100" width="90" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="user4" value="用户 D&#10;(正常)" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#51cf66;fillColor=#d3f9d8;fontSize=14;align=center;" vertex="1" parent="1">
+          <mxGeometry x="750" y="100" width="90" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="user5" value="用户 E&#10;(正常)" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#51cf66;fillColor=#d3f9d8;fontSize=14;align=center;" vertex="1" parent="1">
+          <mxGeometry x="250" y="300" width="90" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="user6" value="用户 F&#10;(违约)" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#ff6b6b;fillColor=#ffe3e3;fontSize=14;align=center;" vertex="1" parent="1">
+          <mxGeometry x="650" y="300" width="90" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="device1" value="设备 1&#10;iPhone" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#74c0fc;fillColor=#e7f5ff;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="100" y="220" width="80" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="device2" value="设备 2&#10;Android" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#74c0fc;fillColor=#e7f5ff;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="400" y="220" width="80" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="device3" value="设备 3&#10;iPad" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#74c0fc;fillColor=#e7f5ff;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="700" y="220" width="80" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="address1" value="地址 1&#10;北京市朝阳区" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#ffd43b;fillColor=#fff9db;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="200" y="450" width="100" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="address2" value="地址 2&#10;上海市浦东新区" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#ffd43b;fillColor=#fff9db;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="600" y="450" width="100" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge1" value="共用设备" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=2;strokeColor=#74c0fc;fontSize=11;fontColor=#74c0fc;" edge="1" parent="1" source="user1" target="device1"/>
+        <mxCell id="edge2" value="共用设备" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=2;strokeColor=#74c0fc;fontSize=11;fontColor=#74c0fc;" edge="1" parent="1" source="user2" target="device1"/>
+        <mxCell id="edge3" value="共用设备" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=2;strokeColor=#74c0fc;fontSize=11;fontColor=#74c0fc;" edge="1" parent="1" source="user3" target="device2"/>
+        <mxCell id="edge4" value="共用设备" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=2;strokeColor=#74c0fc;fontSize=11;fontColor=#74c0fc;" edge="1" parent="1" source="user5" target="device2"/>
+        <mxCell id="edge5" value="共用设备" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=2;strokeColor=#74c0fc;fontSize=11;fontColor=#74c0fc;" edge="1" parent="1" source="user4" target="device3"/>
+        <mxCell id="edge6" value="共用设备" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=2;strokeColor=#74c0fc;fontSize=11;fontColor=#74c0fc;" edge="1" parent="1" source="user6" target="device3"/>
+        <mxCell id="edge7" value="共用地址" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=2;strokeColor=#ffd43b;fontSize=11;fontColor=#ffd43b;" edge="1" parent="1" source="user1" target="address1"/>
+        <mxCell id="edge8" value="共用地址" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=2;strokeColor=#ffd43b;fontSize=11;fontColor=#ffd43b;" edge="1" parent="1" source="user5" target="address1"/>
+        <mxCell id="edge9" value="共用地址" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=2;strokeColor=#ffd43b;fontSize=11;fontColor=#ffd43b;" edge="1" parent="1" source="user3" target="address2"/>
+        <mxCell id="edge10" value="共用地址" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=2;strokeColor=#ffd43b;fontSize=11;fontColor=#ffd43b;" edge="1" parent="1" source="user6" target="address2"/>
+        <mxCell id="edge11" value="担保" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#ff6b6b;fontSize=11;fontColor=#ff6b6b;dashed=1;" edge="1" parent="1" source="user2" target="user1"/>
+        <mxCell id="edge12" value="担保" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#ff6b6b;fontSize=11;fontColor=#ff6b6b;dashed=1;" edge="1" parent="1" source="user4" target="user3"/>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

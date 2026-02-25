@@ -5,39 +5,52 @@
 将所有 Markdown 章节合并并转换为 PDF 文件
 
 使用方法：
-    python scripts/generate_pdf.py [--html-only]
+    python scripts/generate_pdf.py
 
-参数：
-    --html-only  仅生成 HTML 文件，不生成 PDF
+依赖安装（首次使用）：
+    方式 1: pip install fpdf2
+    方式 2: pip install reportlab
+
+    如果网络有问题，可以：
+    1. 在有网的机器下载：pip download fpdf2 -d ./pkgs
+    2. 复制到目标机器：pip install --no-index --find-links=./pkgs fpdf2
+
+输出：
+    信贷风控建模手册.pdf
 """
 
 import os
 import re
 import sys
-import webbrowser
 from pathlib import Path
 from datetime import datetime
 
-# 尝试导入 markdown 相关库
+# 尝试导入 markdown
 try:
     import markdown
     MARKDOWN_AVAILABLE = True
 except ImportError:
     MARKDOWN_AVAILABLE = False
+    print("警告：markdown 库未安装，代码块可能无法正确处理")
 
-# 尝试导入 PDF 生成库
+# 尝试导入 PDF 库
+FPDF_AVAILABLE = False
+REPORTLAB_AVAILABLE = False
+
 try:
     from fpdf import FPDF
     FPDF_AVAILABLE = True
+    print("使用 FPDF2 生成 PDF")
 except ImportError:
-    FPDF_AVAILABLE = False
-
-# 尝试导入中文支持
-try:
-    from fpdf import UnicodeMixin
-    HAS_UNICODE = True
-except ImportError:
-    HAS_UNICODE = False
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.pdfgen import canvas
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        REPORTLAB_AVAILABLE = True
+        print("使用 ReportLab 生成 PDF")
+    except ImportError:
+        pass
 
 
 def get_chapter_order():
@@ -77,338 +90,74 @@ def read_markdown_file(filepath):
         return ""
 
 
-def convert_md_to_html(content):
-    """将 Markdown 转换为 HTML"""
-    if not MARKDOWN_AVAILABLE:
-        # 简单转义
-        return content.replace('<', '&lt;').replace('>', '&gt;')
+def strip_markdown(content):
+    """将 Markdown 转换为纯文本（去除格式）"""
+    # 移除代码块，替换为占位符
+    code_blocks = []
+    def save_code_block(match):
+        code_blocks.append(match.group(1))
+        return f"\n[代码块 {len(code_blocks)}]\n"
 
-    html = markdown.markdown(
-        content,
-        extensions=[
-            'tables',
-            'fenced_code',
-            'nl2br',
-            'codehilite',
-        ],
-        output_format='html5'
-    )
-    return html
+    content = re.sub(r'```(?:\w+)?\n(.*?)```', save_code_block, content, flags=re.DOTALL)
 
+    # 移除行内代码
+    content = re.sub(r'`([^`]+)`', r'\1', content)
 
-def process_markdown_content(content, title=""):
-    """处理 Markdown 内容，转换为适合 PDF 的格式"""
+    # 处理标题
+    content = re.sub(r'^######\s*(.+)$', r'\1', content, flags=re.MULTILINE)
+    content = re.sub(r'^#####\s*(.+)$', r'\1', content, flags=re.MULTILINE)
+    content = re.sub(r'^####\s*(.+)$', r'\1', content, flags=re.MULTILINE)
+    content = re.sub(r'^###\s*(.+)$', r'=== \1 ===', content, flags=re.MULTILINE)
+    content = re.sub(r'^##\s*(.+)$', r'>> \1', content, flags=re.MULTILINE)
+    content = re.sub(r'^#\s*(.+)$', r'>>> \1 <<<', content, flags=re.MULTILINE)
+
+    # 移除图片
+    content = re.sub(r'!\[([^\]]*)\]\([^)]+\)', r'[\1]', content)
+
+    # 处理链接
+    content = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', content)
+
+    # 处理粗体和斜体
+    content = re.sub(r'\*\*\*([^*]+)\*\*\*', r'\1', content)
+    content = re.sub(r'\*\*([^*]+)\*\*', r'\1', content)
+    content = re.sub(r'\*([^*]+)\*', r'\1', content)
+
+    # 处理列表
+    content = re.sub(r'^[\-\*+]\s+', '  • ', content, flags=re.MULTILINE)
+    content = re.sub(r'^\d+\.\s+', '  ', content, flags=re.MULTILINE)
+
+    # 处理引用
+    content = re.sub(r'^>\s*', '  ', content, flags=re.MULTILINE)
+
+    # 处理表格
     lines = content.split('\n')
-    processed = []
-    in_code_block = False
-    code_lines = []
-
+    processed_lines = []
+    in_table = False
     for line in lines:
-        # 处理代码块
-        if line.startswith('```'):
-            if in_code_block:
-                processed.append('[/code]')
-                in_code_block = False
-            else:
-                processed.append('[code]')
-                in_code_block = True
-            continue
-
-        if in_code_block:
-            code_lines.append('    ' + line)
-            continue
-
-        # 处理标题
-        if line.startswith('######'):
-            processed.append(f'\n###### {line[6:].strip()}\n')
-        elif line.startswith('#####'):
-            processed.append(f'\n##### {line[5:].strip()}\n')
-        elif line.startswith('####'):
-            processed.append(f'\n#### {line[4:].strip()}\n')
-        elif line.startswith('###'):
-            processed.append(f'\n### {line[3:].strip()}\n')
-        elif line.startswith('##'):
-            processed.append(f'\n## {line[2:].strip()}\n')
-        elif line.startswith('#'):
-            processed.append(f'\n# {line[1:].strip()}\n')
+        if re.match(r'^\|.*\|', line):
+            # 移除表格分隔线
+            if re.match(r'^\|[\s\-:|]+\|$', line):
+                continue
+            # 保留表格内容，移除多余竖线
+            line = re.sub(r'\|', ' | ', line)
+            line = line.strip()
+            in_table = True
+            processed_lines.append(line)
         else:
-            processed.append(line)
+            if in_table:
+                processed_lines.append('')  # 表格后加空行
+                in_table = False
+            processed_lines.append(line)
 
-    if code_lines:
-        processed.append('\n'.join(code_lines))
-        processed.append('[/code]\n')
+    content = '\n'.join(processed_lines)
 
-    return '\n'.join(processed)
+    # 移除 HTML 标签
+    content = re.sub(r'<[^>]+>', '', content)
 
+    # 压缩多余空行
+    content = re.sub(r'\n{3,}', '\n\n', content)
 
-def create_html_document(content, title="信贷风控建模：打工人手册"):
-    """创建完整的 HTML 文档"""
-    version = datetime.now().strftime('%Y-%m')
-
-    return f"""<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <title>{title}</title>
-    <style>
-        @media print {{
-            @page {{
-                size: A4;
-                margin: 2.5cm;
-                @top-center {{
-                    content: "{title}";
-                    font-size: 9pt;
-                    color: #666;
-                }}
-                @bottom-center {{
-                    content: "第 " counter(page) " 页";
-                    font-size: 9pt;
-                    color: #666;
-                }}
-            }}
-        }}
-
-        * {{
-            box-sizing: border-box;
-        }}
-
-        body {{
-            font-family: "Microsoft YaHei", "SimSun", "Source Han Sans CN", sans-serif;
-            line-height: 1.8;
-            color: #333;
-            font-size: 11pt;
-            max-width: 210mm;
-            margin: 0 auto;
-            padding: 20px;
-        }}
-
-        .cover {{
-            text-align: center;
-            padding: 4cm 2cm;
-            page-break-after: always;
-            background: linear-gradient(135deg, #0a1628 0%, #152642 100%);
-            color: white;
-            margin: -20px -20px 20px -20px;
-            border-radius: 8px;
-        }}
-
-        .cover h1 {{
-            font-size: 42pt;
-            font-weight: bold;
-            color: #ffffff;
-            margin: 2cm 0 1cm 0;
-            border: none;
-        }}
-
-        .cover .subtitle {{
-            font-size: 20pt;
-            color: #ffb84c;
-            margin-bottom: 2cm;
-        }}
-
-        .cover .meta {{
-            font-size: 12pt;
-            color: #c0c0c0;
-            margin-top: 3cm;
-        }}
-
-        .cover .tags {{
-            margin-top: 2cm;
-        }}
-
-        .cover .tag {{
-            display: inline-block;
-            background: rgba(0, 212, 255, 0.2);
-            border: 1px solid #00d4ff;
-            padding: 8px 16px;
-            margin: 5px;
-            border-radius: 20px;
-            font-size: 11pt;
-        }}
-
-        h1 {{
-            color: #1a365d;
-            border-bottom: 3px solid #2c5282;
-            padding-bottom: 0.5em;
-            margin-top: 1.5em;
-            page-break-after: avoid;
-            font-size: 24pt;
-        }}
-
-        h2 {{
-            color: #2c5282;
-            margin-top: 1.5em;
-            page-break-after: avoid;
-            font-size: 18pt;
-        }}
-
-        h3 {{
-            color: #2c5282;
-            margin-top: 1em;
-            font-size: 14pt;
-        }}
-
-        a {{
-            color: #3182ce;
-            text-decoration: none;
-        }}
-
-        code {{
-            background-color: #f7fafc;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-family: "Consolas", "Monaco", "Courier New", monospace;
-            font-size: 9pt;
-        }}
-
-        pre {{
-            background-color: #2d3748;
-            color: #e2e8f0;
-            padding: 1em;
-            border-radius: 6px;
-            overflow-x: auto;
-            font-size: 9pt;
-            line-height: 1.5;
-        }}
-
-        pre code {{
-            background: none;
-            padding: 0;
-        }}
-
-        table {{
-            border-collapse: collapse;
-            width: 100%;
-            margin: 1em 0;
-            font-size: 10pt;
-        }}
-
-        th, td {{
-            border: 1px solid #cbd5e0;
-            padding: 0.75em;
-            text-align: left;
-        }}
-
-        th {{
-            background-color: #edf2f7;
-            font-weight: bold;
-        }}
-
-        tr:nth-child(even) {{
-            background-color: #f7fafc;
-        }}
-
-        blockquote {{
-            margin: 1em 0;
-            padding: 0.5em 1em;
-            border-left: 4px solid #4299e1;
-            background-color: #ebf8ff;
-            color: #2c5282;
-        }}
-
-        ul, ol {{
-            margin: 0.5em 0;
-            padding-left: 2em;
-        }}
-
-        li {{
-            margin: 0.3em 0;
-        }}
-
-        .chapter-start {{
-            page-break-before: always;
-            margin-top: 2em;
-            padding-top: 2em;
-        }}
-
-        .chapter-start:first-child {{
-            page-break-before: auto;
-        }}
-
-        img {{
-            max-width: 100%;
-            height: auto;
-            display: block;
-            margin: 1em auto;
-        }}
-
-        hr {{
-            border: none;
-            border-top: 1px solid #e2e8f0;
-            margin: 2em 0;
-        }}
-
-        .print-button {{
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #3182ce;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        }}
-
-        .print-button:hover {{
-            background: #2c5282;
-        }}
-
-        @media print {{
-            .print-button {{
-                display: none;
-            }}
-            body {{
-                max-width: none;
-                padding: 0;
-            }}
-            .cover {{
-                border-radius: 0;
-                margin: 0;
-            }}
-        }}
-    </style>
-</head>
-<body>
-    <button class="print-button" onclick="window.print()">📄 打印为 PDF</button>
-
-    <div class="cover">
-        <h1>信贷风控建模</h1>
-        <div class="subtitle">打工人手册</div>
-        <div style="color: #90a4ae; font-size: 14pt;">Credit Risk Modeling: A Practical Guide</div>
-
-        <div class="tags">
-            <span class="tag">特征工程</span>
-            <span class="tag">机器学习</span>
-            <span class="tag">图神经网络</span>
-            <span class="tag">序列模型</span>
-            <span class="tag">Kaggle 金牌方案</span>
-        </div>
-
-        <div class="meta">
-            <div>作者：汪叽意且</div>
-            <div>版本：v0.2 · {version}</div>
-            <div style="margin-top: 1em; font-size: 11pt;">从数据清洗到模型部署的完整实战指南</div>
-        </div>
-    </div>
-
-    {content}
-
-    <script>
-        // 自动转换代码块
-        document.querySelectorAll('pre').forEach(pre => {{
-            if (!pre.querySelector('code')) {{
-                const code = document.createElement('code');
-                code.innerHTML = pre.innerHTML;
-                pre.innerHTML = '';
-                pre.appendChild(code);
-            }}
-        }});
-    </script>
-</body>
-</html>
-"""
+    return content.strip()
 
 
 def merge_chapters():
@@ -418,7 +167,6 @@ def merge_chapters():
     print("=" * 60)
 
     root_dir = Path(__file__).parent.parent
-
     merged_content = []
     chapter_order = get_chapter_order()
 
@@ -427,116 +175,263 @@ def merge_chapters():
         print(f"  处理：{chapter}")
         content = read_markdown_file(filepath)
         if content:
-            # 处理内容
-            content = process_markdown_content(content)
+            # 转换为纯文本
+            text_content = strip_markdown(content)
 
-            # 为章节添加分隔
-            if chapter.startswith("chapters/"):
-                merged_content.append(f"\n\n<div class='chapter-start'></div>\n")
-            merged_content.append(convert_md_to_html(content))
+            # 添加章节标题
+            if chapter == "README.md":
+                merged_content.append("信贷风控建模：打工人手册\n")
+                merged_content.append("Credit Risk Modeling: A Practical Guide\n")
+            elif chapter.startswith("chapters/"):
+                # 提取章节标题
+                first_line = text_content.split('\n')[0] if text_content else ""
+                merged_content.append(f"\n\n{'='*40}\n")
+                merged_content.append(f"{first_line}\n")
+                merged_content.append(f"{'='*40}\n")
+                text_content = '\n'.join(text_content.split('\n')[1:])
 
-    return '\n'.join(merged_content)
+            merged_content.append(text_content)
+
+    return '\n\n'.join(merged_content)
 
 
-def generate_pdf(html_only=False):
+def find_chinese_font():
+    """查找系统中的中文字体"""
+    font_candidates = [
+        # Windows
+        "C:/Windows/Fonts/simsun.ttc",
+        "C:/Windows/Fonts/simhei.ttf",
+        "C:/Windows/Fonts/msyh.ttc",
+        "C:/Windows/Fonts/msyh.ttf",
+        "C:/Windows/Fonts/simkai.ttf",
+        # macOS
+        "/System/Library/Fonts/PingFang.ttc",
+        "/System/Library/Fonts/STHeiti Light.ttc",
+        # Linux
+        "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
+        "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+    ]
+
+    for font_path in font_candidates:
+        if os.path.exists(font_path):
+            return font_path
+    return None
+
+
+def generate_pdf_with_fpdf(text_content, output_path):
+    """使用 FPDF2 生成 PDF"""
+    from fpdf import FPDF
+
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=25)
+
+    # 添加封面
+    pdf.add_page()
+
+    # 查找中文字体
+    font_path = find_chinese_font()
+
+    if font_path:
+        try:
+            pdf.add_font('Chinese', '', font_path, uni=True)
+            pdf.set_font('Chinese', '', 14)
+            print(f"  使用中文字体：{font_path}")
+        except Exception as e:
+            print(f"  警告：字体加载失败 {e}")
+            pdf.set_font('Arial', '', 12)
+    else:
+        print("  警告：未找到中文字体，使用英文字体")
+        pdf.set_font('Arial', '', 12)
+
+    # 封面内容
+    pdf.set_font_size(28)
+    pdf.cell(0, 20, 'Credit Risk Modeling', ln=True, align='C')
+    pdf.set_font_size(20)
+    pdf.cell(0, 15, 'A Practical Guide', ln=True, align='C')
+
+    pdf.ln(30)
+    pdf.set_font_size(12)
+    pdf.cell(0, 10, 'Author: Wang Jiyi', ln=True, align='C')
+    pdf.cell(0, 10, f'Version 0.2 - {datetime.now().strftime("%Y-%m")}', ln=True, align='C')
+
+    # 内容页
+    lines = text_content.split('\n')
+    for line in lines:
+        # 处理 Unicode 字符
+        try:
+            if font_path:
+                pdf.set_font('Chinese', '', 11)
+            else:
+                # 检测是否包含中文
+                has_chinese = any('\u4e00' <= c <= '\u9fff' for c in line)
+                if has_chinese:
+                    # 跳过无法处理的行
+                    continue
+
+            # 处理长行自动换行
+            pdf.multi_cell(0, 8, line.encode('latin-1', 'replace').decode('latin-1'))
+        except Exception as e:
+            # 跳过无法编码的行
+            continue
+
+    pdf.output(str(output_path))
+    return True
+
+
+def generate_pdf_with_reportlab(text_content, output_path):
+    """使用 ReportLab 生成 PDF"""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.lib.units import cm
+
+    # 创建 PDF
+    pdf_file = str(output_path)
+    c = canvas.Canvas(pdf_file, pagesize=A4)
+    width, height = A4
+
+    # 查找并注册中文字体
+    font_path = find_chinese_font()
+    if font_path:
+        try:
+            pdfmetrics.registerFont(TTFont('Chinese', font_path))
+            print(f"  使用中文字体：{font_path}")
+            font_name = 'Chinese'
+        except Exception as e:
+            print(f"  警告：字体注册失败 {e}")
+            font_name = 'Helvetica'
+    else:
+        print("  警告：未找到中文字体")
+        font_name = 'Helvetica'
+
+    # 封面
+    c.setFont(font_name, 32)
+    c.drawCentredString(width/2, height - 8*cm, 'Credit Risk Modeling')
+    c.setFont(font_name, 24)
+    c.drawCentredString(width/2, height - 10*cm, 'A Practical Guide')
+
+    c.setFont(font_name, 14)
+    c.drawCentredString(width/2, height - 14*cm, 'Author: Wang Jiyi')
+    c.drawCentredString(width/2, height - 15.5*cm, f'Version 0.2 - {datetime.now().strftime("%Y-%m")}')
+
+    c.showPage()
+
+    # 内容页
+    c.setFont(font_name, 11)
+    y = height - 2.5*cm
+    line_height = 14
+
+    lines = text_content.split('\n')
+    for line in lines:
+        # 跳过空行
+        if not line.strip():
+            y -= line_height
+            continue
+
+        # 简单分页
+        if y < 2*cm:
+            c.showPage()
+            c.setFont(font_name, 11)
+            y = height - 2.5*cm
+
+        # 处理长行
+        max_chars = 45  # 每行最大字符数
+        if len(line) > max_chars:
+            # 自动换行
+            words = line.split(' ')
+            current_line = ''
+            for word in words:
+                if len(current_line + ' ' + word) <= max_chars:
+                    current_line += (' ' if current_line else '') + word
+                else:
+                    if font_name == 'Chinese' or all(ord(c) < 128 for c in current_line):
+                        c.drawString(2.5*cm, y, current_line[:80])  # 截断过长行
+                    y -= line_height
+                    current_line = word
+            if current_line:
+                if font_name == 'Chinese' or all(ord(c) < 128 for c in current_line):
+                    c.drawString(2.5*cm, y, current_line[:80])
+                y -= line_height
+        else:
+            # 只打印 ASCII 或中文
+            try:
+                c.drawString(2.5*cm, y, line[:80])
+            except:
+                pass
+            y -= line_height
+
+    c.save()
+    return True
+
+
+def generate_pdf():
     """生成 PDF 文件"""
     print("\n" + "=" * 60)
     print("生成 PDF 文件...")
     print("=" * 60)
 
     root_dir = Path(__file__).parent.parent
-
-    # 合并章节并转换为 HTML
-    print("\n  合并章节并转换为 HTML...")
-    html_content = merge_chapters()
-
-    # 创建完整的 HTML 文档
-    full_html = create_html_document(html_content)
-
-    # 保存 HTML 文件
-    html_output = root_dir / "信贷风控建模手册.html"
-    with open(html_output, 'w', encoding='utf-8') as f:
-        f.write(full_html)
-    print(f"  HTML 文件：{html_output}")
-
-    if html_only:
-        print("\n  已生成 HTML 文件（--html-only 模式）")
-        return True
-
-    # 尝试生成 PDF
     pdf_output = root_dir / "信贷风控建模手册.pdf"
 
-    if FPDF_AVAILABLE:
-        print("\n  使用 fpdf2 生成 PDF...")
-        try:
-            # 使用 fpdf2 生成 PDF
-            pdf = FPDF()
-            pdf.add_page()
+    # 检查是否有 PDF 库
+    if not FPDF_AVAILABLE and not REPORTLAB_AVAILABLE:
+        print("\n错误：未找到 PDF 生成库")
+        print("\n请安装以下任一库：")
+        print("  方案 1: pip install fpdf2")
+        print("  方案 2: pip install reportlab")
+        print("\n或者手动安装到离线环境：")
+        print("  1. 在有网络的机器下载：pip download fpdf2 -d ./pkgs")
+        print("  2. 复制 pkgs 目录到目标机器")
+        print("  3. pip install --no-index --find-links=./pkgs fpdf2")
+        return False
 
-            # 添加中文字体支持（需要系统中安装中文字体）
-            font_path = "C:/Windows/Fonts/simsun.ttc"
-            if os.path.exists(font_path):
-                pdf.add_font('SimSun', '', font_path, uni=True)
-                pdf.set_font('SimSun', '', 12)
-            else:
-                # 尝试其他中文字体
-                font_candidates = [
-                    "C:/Windows/Fonts/msyh.ttc",
-                    "C:/Windows/Fonts/simhei.ttf",
-                    "/System/Library/Fonts/PingFang.ttc",
-                    "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
-                ]
-                font_added = False
-                for fp in font_candidates:
-                    if os.path.exists(fp):
-                        pdf.add_font('Chinese', '', fp, uni=True)
-                        pdf.set_font('Chinese', '', 12)
-                        font_added = True
-                        break
-                if not font_added:
-                    pdf.set_font('Arial', '', 12)
-                    print("  警告：未找到中文字体，PDF 可能无法正确显示中文")
+    # 合并章节
+    text_content = merge_chapters()
 
-            # 添加内容（简化版）
-            pdf.multi_cell(0, 10, "信贷风控建模：打工人手册\n\nHTML 文件已生成，请使用浏览器打开并打印为 PDF 以获得最佳效果。")
+    # 生成 PDF
+    print("\n  正在生成 PDF...")
 
-            pdf.output(str(pdf_output))
-            print(f"  PDF 文件：{pdf_output}")
-        except Exception as e:
-            print(f"  错误：PDF 生成失败 - {e}")
-    else:
-        print("\n  提示：未安装 fpdf2 库")
-        print("  安装方法：pip install fpdf2")
-
-    print("\n" + "=" * 60)
-    print("  推荐使用以下方式生成 PDF：")
-    print("  1. 用浏览器打开 HTML 文件")
-    print("  2. 按 Ctrl+P (或点击页面上的打印按钮)")
-    print("  3. 选择'另存为 PDF'")
-    print("=" * 60)
-
-    # 自动用浏览器打开
     try:
-        print("\n  正在用浏览器打开 HTML 文件...")
-        webbrowser.open(f'file:///{html_output.absolute()}')
-    except:
-        pass
+        if FPDF_AVAILABLE:
+            success = generate_pdf_with_fpdf(text_content, pdf_output)
+        else:
+            success = generate_pdf_with_reportlab(text_content, pdf_output)
 
-    return True
+        if success:
+            print(f"  PDF 已生成：{pdf_output}")
+            print(f"  文件大小：{pdf_output.stat().st_size / 1024:.1f} KB")
+            return True
+        else:
+            print("  错误：PDF 生成失败")
+            return False
+
+    except Exception as e:
+        print(f"  错误：{e}")
+        import traceback
+        traceback.print_exc()
+        return False
 
 
 def main():
     """主函数"""
-    html_only = '--html-only' in sys.argv
-
     print("\n" + "=" * 60)
     print("  信贷风控建模：打工人手册 - PDF 生成器")
     print("=" * 60)
 
-    generate_pdf(html_only)
+    success = generate_pdf()
 
-    print("\n完成!")
-    return 0
+    if success:
+        print("\n" + "=" * 60)
+        print("  PDF 生成成功!")
+        print("=" * 60)
+        return 0
+    else:
+        print("\n" + "=" * 60)
+        print("  PDF 生成失败")
+        print("=" * 60)
+        return 1
 
 
 if __name__ == "__main__":

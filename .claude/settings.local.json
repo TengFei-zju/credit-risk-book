@@ -29,7 +29,10 @@
       "Bash(git restore:*)",
       "Bash(tail:*)",
       "Bash(pip install:*)",
-      "Bash(start:*)"
+      "Bash(start:*)",
+      "Bash(D:/texlive/2022/bin/win32/pdflatex.exe:*)",
+      "Bash(pip download:*)",
+      "Bash(conda install:*)"
     ]
   }
 }

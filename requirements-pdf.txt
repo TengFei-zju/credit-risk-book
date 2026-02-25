@@ -1,0 +1,3 @@
+# PDF 生成依赖
+xhtml2pdf>=0.2.11
+markdown>=3.4

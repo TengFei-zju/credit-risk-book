@@ -37,3 +37,7 @@ desktop.ini
 *.joblib
 *.model
 mlruns/
+
+# ── 生成的书籍文件（体积大，不入库）───────────────
+*.html
+*.pdf

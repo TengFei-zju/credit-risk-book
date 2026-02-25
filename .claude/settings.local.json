@@ -25,7 +25,11 @@
       "Bash(git clone:*)",
       "Bash(echo HTTP_PROXY: $HTTP_PROXY:*)",
       "Bash(git add:*)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(git restore:*)",
+      "Bash(tail:*)",
+      "Bash(pip install:*)",
+      "Bash(start:*)"
     ]
   }
 }

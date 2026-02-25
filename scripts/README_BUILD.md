@@ -14,26 +14,28 @@
 scripts/
 ├── build_book.py          # 主构建脚本（协调所有步骤）
 ├── update_version.py      # 版本号更新脚本
-├── generate_pdf.py        # PDF 生成脚本
+├── generate_pdf.py        # PDF/HTML 生成脚本（支持手动触发）
 └── convert_drawio_to_svg.py
 
 .git/hooks/
 └── post-commit            # Git hook（自动触发）
 
 requirements-pdf.txt       # PDF 生成依赖库
+scripts/README_BUILD.md    # 本说明文档
 ```
 
 ## 安装依赖
-
-生成 PDF 需要额外的依赖库：
 
 ```bash
 pip install -r requirements-pdf.txt
 ```
 
 必需库：
-- `xhtml2pdf` - PDF 生成
-- `markdown` - Markdown 转 HTML
+- `markdown` - Markdown 转 HTML（已自动安装）
+
+可选库（如需直接生成 PDF）：
+- `fpdf2` - 轻量级 PDF 生成库
+- `xhtml2pdf` - HTML 转 PDF 库
 
 ## 手动运行
 

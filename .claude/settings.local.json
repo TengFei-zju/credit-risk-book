@@ -24,7 +24,8 @@
       "Bash(head:*)",
       "Bash(git clone:*)",
       "Bash(echo HTTP_PROXY: $HTTP_PROXY:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }

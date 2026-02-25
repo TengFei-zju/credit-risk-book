@@ -32,7 +32,10 @@
       "Bash(start:*)",
       "Bash(D:/texlive/2022/bin/win32/pdflatex.exe:*)",
       "Bash(pip download:*)",
-      "Bash(conda install:*)"
+      "Bash(conda install:*)",
+      "Bash(pip config:*)",
+      "Bash(conda config:*)",
+      "Bash(pip cache:*)"
     ]
   }
 }

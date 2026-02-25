@@ -14,7 +14,17 @@
       "Bash(wc:*)",
       "Bash(grep:*)",
       "Bash(ls:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(ping:*)",
+      "Bash(git config:*)",
+      "Bash(code:*)",
+      "Bash(git remote:*)",
+      "Bash(head:*)",
+      "Bash(git clone:*)",
+      "Bash(echo HTTP_PROXY: $HTTP_PROXY:*)",
+      "Bash(git add:*)"
     ]
   }
 }

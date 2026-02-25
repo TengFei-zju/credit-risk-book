@@ -83,4 +83,5 @@ python run_tests.py
 | 第十三章 | [图模型在风控中的应用](chapters/13_graph_models.md) | — |
 | 第十四章 | [序列模型在风控中的应用](chapters/14_sequence_models.md) | — |
 | 第十五章 | [风控中的大模型应用](chapters/15_llm_in_risk.md) | — |
+| 第十七章 | [参考文献与延伸阅读](chapters/17_references.md) | — |
 | 附录 | [常用工具与资源](chapters/appendix.md) | — |

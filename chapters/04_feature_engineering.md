@@ -344,9 +344,53 @@ def lgbm_feature_importance(X_train, y_train, X_val, y_val):
 
 ### 特征选择流程总览
 
-![特征选择流程图](diagrams/ch04_feature_selection_pipeline.drawio)
+```mermaid
+flowchart LR
+    subgraph Input["输入"]
+        A[原始特征集<br/>500 个初始特征]
+    end
 
-上图为完整的特征选择流程，包含 5 个步骤：
+    subgraph Step1["步骤 1: IV 过滤"]
+        B[IV < 0.02 剔除<br/>剩余 300 特征<br/>剔除率 40%]
+    end
+
+    subgraph Step2["步骤 2: 相关性过滤"]
+        C[相关系数>0.8 剔除<br/>剩余 150 特征<br/>剔除率 50%]
+    end
+
+    subgraph Step3["步骤 3: Null Importance"]
+        D[重要性/空重要性<0.5 剔除<br/>剩余 100 特征<br/>剔除率 33%]
+    end
+
+    subgraph Step4["步骤 4: 对抗验证"]
+        E[导致分布差异特征剔除<br/>剩余 80 特征]
+    end
+
+    subgraph Step5["步骤 5: 模型重要性"]
+        F[基于 SHAP/Permutation<br/>最终特征子集]
+    end
+
+    Input --> Step1 --> Step2 --> Step3 --> Step4 --> Step5
+
+    style A fill:#fff2cc,stroke:#333,stroke-width:2px
+    style B fill:#ffffff,stroke:#666,stroke-width:2px
+    style C fill:#ffffff,stroke:#666,stroke-width:2px
+    style D fill:#ffffff,stroke:#666,stroke-width:2px
+    style E fill:#ffffff,stroke:#666,stroke-width:2px
+    style F fill:#d5e8d4,stroke:#333,stroke-width:2px
+```
+
+**图 4-1：特征选择五步流程图**
+
+上图展示了 Kaggle 金牌方案中的系统特征选择方法：
+
+1. **IV 过滤（Information Value Filtering）**：移除 IV 值低于 0.02 的无预测力特征，通常可减少 30%-50% 的特征数量
+2. **相关性过滤（Correlation Filtering）**：对于高度相关的特征对（如相关系数>0.8），保留 IV 更高的那个，避免多重共线性
+3. **Null Importance（空重要性筛选）**：通过打乱标签建立随机基准，只保留重要性超越噪声水平的特征
+4. **对抗验证（Adversarial Validation）**：训练分类器区分训练集和测试集，剔除导致分布差异的特征，确保模型泛化能力
+5. **模型重要性（Model-based Selection）**：基于 LightGBM/SHAP 值/置换重要性进行最终筛选
+
+特征选择流程包含 5 个步骤：
 1. **IV 过滤**：剔除无预测力的特征（IV < 0.02）
 2. **相关性过滤**：剔除高度相关的冗余特征
 3. **Null Importance**：只保留超越噪声基准的特征
@@ -356,6 +400,14 @@ def lgbm_feature_importance(X_train, y_train, X_val, y_val):
 ### 4.9.1 Null Importance 特征选择
 
 **核心思想**：如果特征的重要性不比随机噪声高，则该特征无价值。
+
+**方法起源**：
+Null Importance 方法由 Kaggle Grandmaster CPMP 在 2018 年提出，并在多个风控竞赛中获得金牌。其核心洞察是：传统特征重要性无法回答"多小才算小"的问题，而通过打乱标签建立随机基准，可以提供统计显著性判断。
+
+**统计解释**：
+- 原假设 H0：特征与目标变量无关
+- 通过打乱 y 生成的空重要性分布，相当于在原假设下的抽样分布
+- 如果真实重要性显著高于空重要性（如 ratio > 2），则拒绝原假设
 
 ```python
 import numpy as np
@@ -436,6 +488,22 @@ print(f"原始特征：{X_train.shape[1]}, 筛选后：{len(selected_features)}"
 ### 4.9.2 对抗验证（Adversarial Validation）
 
 **核心思想**：检测训练集和测试集（或 OOT 样本）的分布差异，识别并剔除导致分布不一致的特征。
+
+**方法原理**：
+对抗验证的思想源于域适应（Domain Adaptation）领域。通过训练一个二分类器区分训练集和测试集：
+- 如果分类器 AUC 接近 0.5，说明两套数据分布一致，无法区分
+- 如果分类器 AUC 显著高于 0.5，说明两套数据存在系统性差异
+
+**风控中的应用场景**：
+1. **拒绝推断**：判断被拒绝客户与通过客户是否同分布
+2. **OOT 验证**：判断时间窗口外样本（Out-of-Time）是否与训练集同分布
+3. **域适应**：判断不同渠道/产品线/地区的客户是否可合并建模
+4. **样本选择偏差检测**：判断训练样本是否代表了总体人群
+
+**AUC 判断标准**：
+- AUC < 0.55：分布一致，无需特殊处理
+- 0.55 <= AUC < 0.60：存在轻微差异，需关注
+- AUC >= 0.60：存在显著差异，必须处理（剔除导致差异的特征或重新采样）
 
 ```python
 from sklearn.model_selection import StratifiedKFold

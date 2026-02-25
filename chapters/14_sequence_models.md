@@ -1,8 +1,8 @@
-# 第十五章 序列模型在风控中的应用
+# 第十四章 序列模型在风控中的应用
 
-## 15.1 序列数据在风控中的价值
+## 14.1 序列数据在风控中的价值
 
-### 15.1.1 风控中的序列数据类型
+### 14.1.1 风控中的序列数据类型
 
 ```
 时序行为序列：
@@ -18,33 +18,104 @@
 - 长度可变：不同用户的序列长度不同
 ```
 
-### 15.1.2 为什么需要序列模型
+### 14.1.2 为什么需要序列模型
 
-```
-传统静态特征的局限：
-- 只能捕捉某个时间点的状态
-- 无法捕捉行为趋势（如：还款能力恶化）
-- 无法捕捉周期性模式（如：月度消费波动）
+**传统静态特征的局限**：
+- 只能捕捉某个时间点的状态（snapshot），丢失了时间维度信息
+- 无法捕捉行为趋势：例如用户从正常还款逐渐变为频繁逾期，这种恶化趋势是重要的风险信号
+- 无法捕捉周期性模式：例如用户每月发工资后还款、月底消费高峰等规律
+- 无法区分时序模式：两个用户都有 3 次逾期，但"早期逾期后期正常"与"早期正常近期逾期"风险截然不同
 
-序列模型的优势：
-- 捕捉时间依赖关系
-- 识别行为模式变化
-- 预测未来行为趋势
-```
+**序列模型的独特优势**：
+1. **捕捉时间依赖关系**：当前行为受历史行为影响，序列模型可以建模这种动态依赖
+2. **识别行为模式变化**：通过注意力机制或 RNN 隐藏状态，捕捉用户行为模式的演变
+3. **预测未来行为趋势**：基于历史序列预测未来违约概率，而非仅基于当前状态
+4. **处理变长序列**：不同用户的历史记录长度不同，序列模型可以自然处理
+
+**序列模型在风控中的应用场景**：
+- 还款行为预测：基于历史还款记录预测未来违约概率
+- 消费行为建模：基于消费序列识别套现、欺诈等异常模式
+- 动态额度管理：基于用户行为变化动态调整授信额度
+- 早期预警系统：识别风险恶化趋势，提前介入干预
+
+**深度学习序列模型对比**：
+| 模型 | 优点 | 缺点 | 适用场景 |
+|------|------|------|----------|
+| LSTM | 捕捉长依赖、训练稳定 | 串行计算慢、长序列效果下降 | 中短期序列（<100 步） |
+| GRU | 参数更少、训练更快 | 长依赖捕捉略弱于 LSTM | 资源受限场景 |
+| Transformer | 并行计算、长依赖强 | 需要大量数据、计算密集 | 长序列、大数据场景 |
 
 ---
 
-### 15.1.3 序列模型结构可视化
+### 14.1.3 序列模型结构可视化
 
 #### LSTM 序列处理流程图
 
-![LSTM 序列处理流程图](diagrams/ch15_lstm_sequence.drawio)
+```mermaid
+flowchart LR
+    subgraph Input["输入层 - 还款行为序列"]
+        direction TB
+        X1["x_T-11<br/>逾期 0 天"]
+        X2["x_T-10<br/>逾期 0 天"]
+        X3["x_T-9<br/>逾期 15 天"]
+        X4["..."]
+        X5["x_T-2<br/>逾期 15 天"]
+        X6["x_T-1<br/>逾期 30 天"]
+    end
 
-**图解说明**：
-- **输入层**：用户过去 12 期的还款记录（逾期天数序列）
-- **LSTM 层**：按时间顺序处理序列，隐藏状态传递历史信息
-- **注意力层**：自动学习各时间步的重要性权重（α）
-  - 近期逾期（T-1 期）权重最高（0.5）→ 最近违约信号更重要
+    subgraph LSTM["LSTM 层 - 时序编码"]
+        direction LR
+        L1["LSTM₁"]
+        L2["LSTM₂"]
+        L3["LSTM₃"]
+        L4["..."]
+        L5["LSTMₙ₋₁"]
+        L6["LSTMₙ"]
+    end
+
+    subgraph Attention["注意力层 - 权重分配"]
+        A1["α₁=0.1"]
+        A2["α₂=0.1"]
+        A3["α₃=0.3"]
+        A4["αₙ₋₁=0.2"]
+        A5["αₙ=0.5"]
+    end
+
+    Output["输出层<br/>违约概率 P=0.75"]
+
+    X1 --> L1
+    X2 --> L2
+    X3 --> L3
+    X5 --> L5
+    X6 --> L6
+
+    L1 -.->|"h₁"| A1
+    L2 -.->|"h₂"| A2
+    L3 -.->|"h₃"| A3
+    L5 -.->|"hₙ₋₁"| A4
+    L6 -.->|"hₙ"| A5
+
+    A1 & A2 & A3 & A4 & A5 -->|"加权求和"| Output
+
+    style X6 fill:#ffe3e3,stroke:#ff6b6b,stroke-width:3px
+    style X3 fill:#fff9db,stroke:#fcc419,stroke-width:2px
+    style A5 fill:#ffe3e3,stroke:#ff6b6b,stroke-width:3px
+    style A3 fill:#fff9db,stroke:#fcc419,stroke-width:2px
+    style Output fill:#d3f9d8,stroke:#51cf66,stroke-width:2px
+```
+
+**图 14-1：LSTM 序列处理流程图（带注意力机制）**
+
+上图展示了 LSTM（长短期记忆网络）处理用户还款行为序列的完整流程：
+
+**架构说明**：
+- **输入层**：用户过去 12 期的还款记录（逾期天数序列），按期数从早期到近期排列
+- **LSTM 层**：按时间顺序处理序列，每个时间步的隐藏状态 h_t 传递历史信息
+  - LSTM 通过门控机制（遗忘门、输入门、输出门）控制信息流动
+  - 能够捕捉长期依赖关系，避免传统 RNN 的梯度消失问题
+- **注意力层**：自动学习各时间步的重要性权重（α₁~αₙ）
+  - 权重通过可学习的神经网络计算，经 Softmax 归一化
+  - 图中显示：近期逾期（T-1 期）权重最高（0.5）→ 最近违约信号更重要
   - 中期逾期（T-9 期）权重中等（0.3）→ 历史风险模式
   - 早期正常还款权重较低（0.1）→ 久远的信息参考价值低
 - **输出层**：基于加权后的上下文向量，输出违约概率
@@ -56,19 +127,90 @@
 
 ---
 
-### 15.1.4 多模态序列融合架构
+### 14.1.4 多模态序列融合架构
 
-![多模态融合架构图](diagrams/ch15_multi_modal_fusion.drawio)
+```mermaid
+flowchart LR
+    subgraph Modal1["分支 1: 还款序列"]
+        R1["输入：还款行为<br/>[逾期次数，还款金额，...]"]
+        LSTM1["LSTM 编码器"]
+        E1["e_repay<br/>还款嵌入向量"]
+    end
 
-上图展示了如何融合多种数据源：
-- **还款序列**：通过 LSTM 编码为固定长度向量
-- **消费序列**：通过 LSTM 编码为固定长度向量
-- **静态特征**：通过 MLP 编码为固定长度向量
-- **融合层**：拼接所有向量，输出最终预测
+    subgraph Modal2["分支 2: 消费序列"]
+        C1["输入：消费行为<br/>[交易金额，商户类型，...]"]
+        LSTM2["LSTM 编码器"]
+        E2["e_spend<br/>消费嵌入向量"]
+    end
 
-## 15.2 循环神经网络（RNN）基础
+    subgraph Modal3["分支 3: 静态特征"]
+        S1["输入：静态特征<br/>[年龄，收入，职业，...]"]
+        MLP["MLP 编码器"]
+        E3["e_static<br/>静态嵌入向量"]
+    end
 
-### 15.2.1 LSTM（长短期记忆网络）
+    Concat["Concat 拼接<br/>[e_repay, e_spend, e_static]"]
+
+    Fusion["Fusion Layer 融合层<br/>Dense(128) + Dropout(0.3)"]
+
+    Output["输出层<br/>违约概率 P(default)"]
+
+    R1 --> LSTM1 --> E1 --> Concat
+    C1 --> LSTM2 --> E2 --> Concat
+    S1 --> MLP --> E3 --> Concat
+    Concat --> Fusion --> Output
+
+    style R1 fill:#ffe3e3,stroke:#ff6b6b,stroke-width:2px
+    style C1 fill:#e7f5ff,stroke:#74c0fc,stroke-width:2px
+    style S1 fill:#d3f9d8,stroke:#51cf66,stroke-width:2px
+    style LSTM1 fill:#ffe3e3,stroke:#ff6b6b,stroke-width:2px
+    style LSTM2 fill:#e7f5ff,stroke:#74c0fc,stroke-width:2px
+    style MLP fill:#d3f9d8,stroke:#51cf66,stroke-width:2px
+    style Concat fill:#fff9db,stroke:#fcc419,stroke-width:2px
+    style Fusion fill:#fff9db,stroke:#fcc419,stroke-width:2px
+    style Output fill:#d3f9d8,stroke:#51cf66,stroke-width:2px
+```
+
+**图 14-2：多模态序列融合架构图**
+
+上图展示了如何融合多种数据源进行风控建模：
+
+**架构说明**：
+1. **还款序列分支**：使用 LSTM 编码用户的还款行为序列，输出固定长度的嵌入向量 e_repay
+2. **消费序列分支**：使用 LSTM 编码用户的消费行为序列，输出嵌入向量 e_spend
+3. **静态特征分支**：使用 MLP（多层感知机）编码用户的基本属性（年龄、收入、职业等），输出嵌入向量 e_static
+4. **融合层**：将三个模态的嵌入向量拼接，通过 Dense 层 + Dropout 进行特征融合和非线性变换
+5. **输出层**：将融合后的特征映射为违约概率
+
+**为什么有效**：
+- **互补信息**：还款序列反映历史信用表现，消费序列反映当前消费能力和习惯，静态特征反映基本资质
+- **多视角学习**：不同模态从不同角度描述用户风险，融合后信息更全面
+- **端到端训练**：所有分支可以联合优化，自动学习各模态的相对重要性
+
+## 14.2 循环神经网络（RNN）基础
+
+**RNN 的发展脉络**：
+- 1980s：标准 RNN 提出，理论上可以处理任意长度序列
+- 1997：LSTM 提出，解决长依赖问题
+- 2014：GRU 提出，简化 LSTM 结构
+- 2017：Transformer 提出，自注意力机制颠覆序列建模
+- 2020s：BERT、GPT 等大模型时代，但在风控等结构化数据场景，LSTM/GRU 仍有应用价值
+
+### 14.2.1 RNN 的基本原理
+
+标准 RNN 的更新公式：
+
+
+**RNN 的问题**：
+- 梯度消失/梯度爆炸：长序列训练时梯度会指数级衰减或爆炸
+- 无法捕捉长距离依赖：理论上可以，实际上很难
+
+**LSTM 的改进**：
+- 引入门控机制：遗忘门、输入门、输出门
+- 引入细胞状态（Cell State）：信息可以在时间步之间直接传递
+- 梯度流动更加稳定：可以捕捉 100+ 时间步的依赖关系
+
+### 14.2.1 LSTM（长短期记忆网络）
 
 ```python
 import torch
@@ -148,7 +290,7 @@ class AttentionLayer(nn.Module):
         return context
 ```
 
-### 15.2.2 还款行为序列建模
+### 14.2.2 还款行为序列建模
 
 ```python
 def prepare_repayment_sequence_data(repayment_log_df, label_df, seq_len=12):
@@ -241,9 +383,9 @@ def train_lstm_model(X_train, y_train, X_val, y_val, epochs=50):
 
 ---
 
-## 15.3 Transformer 在风控中的应用
+## 14.3 Transformer 在风控中的应用
 
-### 15.3.1 为什么用 Transformer
+### 14.3.1 为什么用 Transformer
 
 ```
 LSTM 的局限：
@@ -256,7 +398,7 @@ Transformer 的优势：
 - 在 NLP 领域已验证成功
 ```
 
-### 15.3.2 简化版 Transformer 编码器
+### 14.3.2 简化版 Transformer 编码器
 
 ```python
 import torch.nn.functional as F
@@ -353,9 +495,9 @@ def train_transformer_model(X_train, y_train, X_val, y_val, epochs=50):
 
 ---
 
-## 15.4 多模态序列融合
+## 14.4 多模态序列融合
 
-### 15.4.1 多序列输入模型
+### 14.4.1 多序列输入模型
 
 ```python
 class MultiModalSequenceModel(nn.Module):
@@ -406,7 +548,7 @@ class MultiModalSequenceModel(nn.Module):
         return out.squeeze()
 ```
 
-### 15.4.2 静态特征 + 序列特征融合
+### 14.4.2 静态特征 + 序列特征融合
 
 ```python
 class HybridModel(nn.Module):
@@ -495,9 +637,9 @@ def train_hybrid_model(static_train, seq_train, y_train,
 
 ---
 
-## 15.5 序列特征的解释性
+## 14.5 序列特征的解释性
 
-### 15.5.1 注意力权重可视化
+### 14.5.1 注意力权重可视化
 
 ```python
 import matplotlib.pyplot as plt
@@ -533,7 +675,7 @@ def visualize_attention_weights(model, sequence_data, user_ids, feature_names):
     return attn_weights
 ```
 
-### 15.5.2 时间步重要性分析
+### 14.5.2 时间步重要性分析
 
 ```python
 def analyze_time_step_importance(model, sequence_data, y_true):
@@ -573,9 +715,9 @@ def analyze_time_step_importance(model, sequence_data, y_true):
 
 ---
 
-## 15.6 序列模型的实战技巧
+## 14.6 序列模型的实战技巧
 
-### 15.6.1 处理变长序列
+### 14.6.1 处理变长序列
 
 ```python
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
@@ -605,7 +747,7 @@ def train_with_packing(X_sequences, y, seq_lengths):
     return packed
 ```
 
-### 15.6.2 序列数据增强
+### 14.6.2 序列数据增强
 
 ```python
 def sequence_augmentation(X, y, augmentation_method='jitter'):
@@ -650,9 +792,9 @@ def sequence_augmentation(X, y, augmentation_method='jitter'):
 
 ---
 
-## 15.7 序列模型在风控中的挑战
+## 14.7 序列模型在风控中的挑战
 
-### 15.7.1 数据质量问题
+### 14.7.1 数据质量问题
 
 ```markdown
 ⚠️ 序列数据常见问题：
@@ -670,7 +812,7 @@ def sequence_augmentation(X, y, augmentation_method='jitter'):
    - 需要对齐到统一的时间参考点
 ```
 
-### 15.7.2 模型部署考虑
+### 14.7.2 模型部署考虑
 
 ```python
 class SequenceModelForDeployment(nn.Module):

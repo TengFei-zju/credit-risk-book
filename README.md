@@ -3,7 +3,7 @@
 > 信贷从业者的实战建模指南
 > 附完整可运行代码库，基于阿里云天池「贷款违约预测」数据集
 
-作者：（待填写）
+作者：汪叽意且
 版本：v0.2
 最后更新：2026-02
 
@@ -80,7 +80,7 @@ python run_tests.py
 | 第十章 | [策略设计与决策引擎](chapters/10_strategy_decision.md) | — |
 | 第十一章 | [反欺诈建模](chapters/11_anti_fraud.md) | — |
 | 第十二章 | [催收评分与贷后管理](chapters/12_collection.md) | — |
-| 第十四章 | [图模型在风控中的应用](chapters/14_graph_models.md) | — |
-| 第十五章 | [序列模型在风控中的应用](chapters/15_sequence_models.md) | — |
-| 第十六章 | [风控中的大模型应用](chapters/16_llm_in_risk.md) | — |
+| 第十三章 | [图模型在风控中的应用](chapters/13_graph_models.md) | — |
+| 第十四章 | [序列模型在风控中的应用](chapters/14_sequence_models.md) | — |
+| 第十五章 | [风控中的大模型应用](chapters/15_llm_in_risk.md) | — |
 | 附录 | [常用工具与资源](chapters/appendix.md) | — |

@@ -5,7 +5,16 @@
       "Bash(npx @next-ai-drawio/mcp-server@latest --version)",
       "Bash(\"c:/Users/tengfei/Desktop/credit-risk-book/chapters/diagrams/ch04_feature_selection_pipeline.drawio\":*)",
       "Bash('c:/Users/tengfei/Desktop/credit-risk-book/chapters/diagrams/ch06_oof_cross_validation.drawio':*)",
-      "Bash(tee 'c:/Users/tengfei/Desktop/credit-risk-book/chapters/diagrams/ch06_oof_cross_validation.drawio':*)"
+      "Bash(tee 'c:/Users/tengfei/Desktop/credit-risk-book/chapters/diagrams/ch06_oof_cross_validation.drawio':*)",
+      "Bash(drawio_export --output \"/c/Users/tengfei/Desktop/credit-risk-book/chapters/diagrams/ch06_pseudo_labeling.png\" --format png --dpi 300 --input \"/c/Users/tengfei/Desktop/credit-risk-book/chapters/diagrams/ch06_pseudo_labeling.drawio\")",
+      "WebSearch",
+      "Bash(python3:*)",
+      "Bash(python:*)",
+      "Bash(`\n传统静态特征的局限：\n- 只能捕捉某个时间点的状态\n- 无法捕捉行为趋势（如：还款能力恶化）\n- 无法捕捉周期性模式（如：月度消费波动）\n\n序列模型的优势：\n- 捕捉时间依赖关系\n- 识别行为模式变化\n- 预测未来行为趋势\n```'''\n\nnew_1512 = '''###:*)",
+      "Bash(wc:*)",
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(cd:*)"
     ]
   }
 }
